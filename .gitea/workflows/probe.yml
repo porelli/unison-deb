@@ -1,0 +1,65 @@
+# Throwaway probe. Answers five questions about the Gitea runner, then gets deleted:
+#   Q1: does job-level `container:` start at all?
+#   Q2: does apt-get work inside it?
+#   Q3: does actions/checkout@v4 work inside a bare container (needs node)?
+#   Q4: does the version scheme sort correctly under real dpkg?
+#   Q5: is nested docker available (needed only for optional QEMU arm64 path)?
+name: probe
+on: workflow_dispatch
+
+jobs:
+  container-support:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Q1 - Does container start at all?
+        id: q1
+        run: |
+          set -eux
+          printf '=== Q1: container started ===\n'
+          cat /etc/os-release
+          uname -m
+          id
+
+      - name: Q2 - Does apt-get work?
+        id: q2
+        if: always()
+        run: |
+          set -eux
+          printf '=== Q2: apt-get test ===\n'
+          apt-get update
+          apt-get install -y --no-install-recommends dpkg-dev git ca-certificates
+
+      - name: Q3 - Does actions/checkout work in bare container?
+        id: q3
+        if: always()
+        continue-on-error: true
+        uses: actions/checkout@v4
+
+      - name: Q3 fallback - git clone if checkout failed
+        if: always() && steps.q3.outcome == 'failure'
+        run: |
+          printf '=== Q3 failed, using git clone fallback ===\n'
+          git clone https://gitea.porelli.eu/claude/unison-deb.git .
+          git log -1
+
+      - name: Q4 - Version ordering against real dpkg
+        if: always()
+        run: |
+          printf '=== Q4: version ordering test ===\n'
+          sh tests/test-dpkg-order.sh
+
+  nested-docker:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Q5 - Is nested docker available?
+        run: |
+          set -x
+          printf '=== Q5: nested docker test ===\n'
+          if docker version; then
+            printf 'Q5: YES - nested docker is available\n'
+          else
+            printf 'Q5: NO - nested docker unavailable (the QEMU arm64 path will not work here)\n'
+            exit 1
+          fi

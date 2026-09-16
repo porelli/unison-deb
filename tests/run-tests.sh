@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 # Do NOT glob test-*.sh — some tests require arguments and will abort.
 TESTS="
   tests/test-version.sh
+  tests/test-dpkg-order.sh
 "
 
 rc=0
