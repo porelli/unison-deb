@@ -73,6 +73,19 @@ jobs:
           done
           find repo -name '*.deb' | sort
 
+      - name: Build the keyring packages and the bootstrap tree
+        run: |
+          set -eux
+          # shellcheck source=scripts/lib.sh
+          . scripts/lib.sh
+          for suite in $(suite_list); do
+            mkdir -p "repo/bootstrap/$suite" "repo/pool/$suite/main/u/unison"
+            sh scripts/make-keyring-deb.sh "$suite" packaging/keys/unison-deb.asc "repo/bootstrap/$suite"
+            cp "repo/bootstrap/$suite"/*.deb "repo/pool/$suite/main/u/unison/"
+          done
+          cp packaging/keys/unison-deb.asc repo/unison-deb.asc
+          find repo/bootstrap -type f | sort
+
       - name: Import the signing key
         env:
           APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
@@ -101,3 +114,37 @@ jobs:
         with:
           name: repo
           path: repo
+
+  install-test:
+    needs: repo
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: trixie
+            image: debian:trixie
+            runner: ubuntu-latest
+          - suite: resolute
+            image: ubuntu:26.04
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install nodejs for checkout
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends nodejs git ca-certificates
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: repo
+          path: repo
+
+      - name: Install from the repository and sync for real
+        run: |
+          set -eu
+          version="$(sh scripts/deb-version.sh "${{ inputs.version }}" "${{ matrix.suite }}")"
+          sh scripts/install-test.sh "$PWD/repo" "${{ matrix.suite }}" "$version"
