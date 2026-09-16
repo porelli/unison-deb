@@ -29,12 +29,13 @@ g_ctrl="$(dpkg-deb -f "$gtk_deb")"
 
 # The entire point of the project. Match whole paths to avoid false positives
 # (e.g. "./usr/bin/unison" matching "./usr/bin/unison-fsmonitor").
-if ! printf '%s\n' "$u_files" | grep -q ' \./usr/bin/unison-fsmonitor$'; then
+# dpkg-deb -c output: for files, line ends with path; for symlinks, path is followed by " -> target"
+if ! printf '%s\n' "$u_files" | grep -q ' \./usr/bin/unison-fsmonitor\( \|$\)'; then
   printf 'FAIL unison does not ship unison-fsmonitor\n'; FAILED=1
 else
   printf 'ok   unison ships unison-fsmonitor\n'
 fi
-if ! printf '%s\n' "$u_files" | grep -q ' \./usr/bin/unison$'; then
+if ! printf '%s\n' "$u_files" | grep -q ' \./usr/bin/unison\( \|$\)'; then
   printf 'FAIL unison does not ship unison\n'; FAILED=1
 else
   printf 'ok   unison ships unison\n'
@@ -55,12 +56,13 @@ case "$u_deps" in
 esac
 
 # Match whole paths for the binaries to avoid false substring matches
-if ! printf '%s\n' "$g_files" | grep -q ' \./usr/bin/unison-gui$'; then
+# For symlinks, dpkg -c shows "path -> target", so we can't use $
+if ! printf '%s\n' "$g_files" | grep -q ' \./usr/bin/unison-gui\( \|$\)'; then
   printf 'FAIL unison-gtk does not ship unison-gui\n'; FAILED=1
 else
   printf 'ok   unison-gtk ships unison-gui\n'
 fi
-if ! printf '%s\n' "$g_files" | grep -q ' \./usr/bin/unison-gtk$'; then
+if ! printf '%s\n' "$g_files" | grep -q ' \./usr/bin/unison-gtk\( \|$\)'; then
   printf 'FAIL unison-gtk does not ship the compat symlink\n'; FAILED=1
 else
   printf 'ok   unison-gtk ships the compat symlink\n'
