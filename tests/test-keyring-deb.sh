@@ -32,11 +32,37 @@ assert_contains "$sources" "Signed-By: /usr/share/keyrings/$KEYRING_FILE" "sourc
 
 # The keyring must be a real binary OpenPGP keyring, not the armoured form:
 # apt's Signed-By path does not accept armour in a .gpg file.
+# Positive assertions: non-empty, valid, contains the right key.
 dpkg-deb --fsys-tarfile "$deb" | tar -xO ./usr/share/keyrings/"$KEYRING_FILE" > /tmp/kr.gpg
-if head -c 100 /tmp/kr.gpg | grep -q 'BEGIN PGP'; then
-  printf 'FAIL keyring is ASCII-armoured; it must be dearmoured\n'; FAILED=1
+
+# Assert non-empty
+if [ ! -s /tmp/kr.gpg ]; then
+  printf 'FAIL keyring is empty\n'; FAILED=1
 else
-  printf 'ok   keyring is binary\n'
+  printf 'ok   keyring is non-empty\n'
+fi
+
+# Assert it's NOT ASCII-armoured (apt's Signed-By requires binary format)
+if head -c 100 /tmp/kr.gpg | grep -q '^-----BEGIN PGP'; then
+  printf 'FAIL keyring is ASCII-armoured; apt requires binary format\n'; FAILED=1
+else
+  printf 'ok   keyring is dearmoured\n'
+fi
+
+# Assert it's a valid OpenPGP keyring
+if ! gpg --show-keys /tmp/kr.gpg >/dev/null 2>&1; then
+  printf 'FAIL keyring is not a valid OpenPGP keyring\n'; FAILED=1
+else
+  printf 'ok   keyring is valid OpenPGP\n'
+fi
+
+# Assert it contains exactly the intended key
+shipped_fp="$(gpg --with-colons --show-keys /tmp/kr.gpg 2>/dev/null | awk -F: '/^fpr:/ {print $10; exit}')"
+source_fp="$(gpg --with-colons --show-keys packaging/keys/unison-deb.asc 2>/dev/null | awk -F: '/^fpr:/ {print $10; exit}')"
+if [ "$shipped_fp" != "$source_fp" ]; then
+  printf 'FAIL keyring fingerprint mismatch: shipped=%s source=%s\n' "$shipped_fp" "$source_fp"; FAILED=1
+else
+  printf 'ok   keyring contains the correct key\n'
 fi
 
 # conffile, so a local edit survives upgrades
