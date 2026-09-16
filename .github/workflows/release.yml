@@ -157,6 +157,8 @@ jobs:
             rm -rf repo/dists   # rebuilt from scratch every run
             echo "carried forward:"
             find repo/pool -name '*.deb' 2>/dev/null | sort || true
+            # Purge any version-free keyring aliases from the pool (idempotent, safe if absent)
+            find repo/pool -type f -name 'unison-deb-keyring.deb' -delete || true
           else
             echo "no published branch yet; starting from an empty pool"
           fi
@@ -198,8 +200,9 @@ jobs:
           for suite in $(sh -c '. scripts/lib.sh; suite_list'); do
             mkdir -p "repo/bootstrap/$suite" "repo/pool/$suite/main/u/unison"
             sh scripts/make-keyring-deb.sh "$suite" packaging/keys/unison-deb.asc "repo/bootstrap/$suite"
-            cp "repo/bootstrap/$suite"/*.deb "repo/pool/$suite/main/u/unison/"
-            # Add a version-free alias for the keyring package (match only the versioned deb)
+            # Copy only the versioned keyring package to the pool (not the version-free alias)
+            cp "repo/bootstrap/$suite"/unison-deb-keyring_*_all.deb "repo/pool/$suite/main/u/unison/"
+            # Add a version-free alias in bootstrap/ for the documented install one-liner
             cp "repo/bootstrap/$suite"/unison-deb-keyring_*_all.deb "repo/bootstrap/$suite/unison-deb-keyring.deb"
           done
           cp packaging/keys/unison-deb.asc repo/unison-deb.asc
