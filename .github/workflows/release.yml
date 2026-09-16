@@ -16,6 +16,9 @@ jobs:
           - suite: trixie
             image: debian:trixie
             runner: ubuntu-latest
+          - suite: resolute
+            image: ubuntu:26.04
+            runner: ubuntu-latest
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.image }}
     steps:
