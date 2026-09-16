@@ -28,6 +28,8 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 echo "==> fetching upstream source"
+# NOTE: This packaging targets the 2.54.0+ tree layout and will not build
+# releases that predate upstream shipping data/unison-gui.desktop and icons/.
 curl -fsSL "https://github.com/$UPSTREAM_REPO/archive/refs/tags/v$upstream.tar.gz" \
   -o "$work/src.tar.gz"
 tar -xzf "$work/src.tar.gz" -C "$work"

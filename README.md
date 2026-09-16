@@ -44,6 +44,9 @@ it in a fresh container and runs a real `-repeat watch` sync to prove
 `unison-fsmonitor` works, then publishes to the `apt-repo` branch, which GitHub
 Pages serves.
 
+The packaging targets the 2.54.0+ tree layout and will not build releases that
+predate upstream shipping the desktop file and icons (i.e. versions < 2.54.0).
+
 - Design: `docs/superpowers/specs/2026-09-16-unison-deb-design.md`
 - Key handling and rotation: `docs/key-management.md`
 - Adding a suite: add a line to `packaging/suites.tsv`.
