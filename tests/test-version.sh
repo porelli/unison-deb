@@ -27,8 +27,8 @@ assert_fails suite_vtag bookworm
 assert_fails deb_version 2.54.0 1 bookworm
 
 # Test the deb-version.sh wrapper with real packaging/revision (value 2)
-assert_eq "$(sh scripts/deb-version.sh 2.54.0 trixie)"   "2.54.0-1+porelli2~deb13"  "deb-version.sh trixie"
-assert_eq "$(sh scripts/deb-version.sh 2.54.0 resolute)" "2.54.0-1+porelli2~ub2604" "deb-version.sh resolute"
+assert_eq "$(sh scripts/deb-version.sh 2.54.0 trixie)"   "2.54.0-1+porelli3~deb13"  "deb-version.sh trixie"
+assert_eq "$(sh scripts/deb-version.sh 2.54.0 resolute)" "2.54.0-1+porelli3~ub2604" "deb-version.sh resolute"
 assert_fails sh scripts/deb-version.sh 2.54.0 bookworm
 
 # Verify that unknown suite produces stderr output (not just a silent failure)
