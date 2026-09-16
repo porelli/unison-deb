@@ -11,7 +11,7 @@ override_dh_auto_build:
 	# NOT `make manpage` -- upstream's manpage and docs targets are empty
 	# no-ops. Only manpagefile builds anything, by expanding man/unison.1.in
 	# with the freshly built binary's -prefsman output.
-	$(MAKE) -C src manpagefile
+	$(MAKE) -C src -f Makefile.OCaml manpagefile
 	./src/unison -doc all > unison-manual.txt
 	test -s man/unison.1
 	test -s unison-manual.txt
