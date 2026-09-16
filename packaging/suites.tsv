@@ -1,0 +1,3 @@
+# codename	vendor	container image	version tag
+trixie	debian	debian:trixie	deb13
+resolute	ubuntu	ubuntu:26.04	ub2604
