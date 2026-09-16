@@ -2,3 +2,7 @@
 .superpowers/
 # Never commit private key material.
 *-secret.asc
+# Generated keyring files (built dynamically, not committed)
+*.gpg
+# Explicitly allow public keys in packaging/keys
+!packaging/keys/*.asc

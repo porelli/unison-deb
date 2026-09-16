@@ -33,6 +33,12 @@ jobs:
       - name: Build
         run: sh scripts/build-debs.sh "${{ inputs.version }}" "${{ matrix.suite }}" "$PWD/out"
 
+      - name: Build the keyring package
+        run: |
+          set -eux
+          apt-get install -y --no-install-recommends gnupg
+          sh scripts/make-keyring-deb.sh "${{ matrix.suite }}" packaging/keys/unison-deb.asc "$PWD/out"
+
       - uses: actions/upload-artifact@v4
         with:
           name: debs-${{ matrix.suite }}-amd64
