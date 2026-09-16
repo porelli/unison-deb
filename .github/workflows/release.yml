@@ -30,7 +30,6 @@ jobs:
       changed:  ${{ steps.d.outputs.changed }}
       upstream: ${{ steps.d.outputs.upstream }}
       target:   ${{ steps.d.outputs.target }}
-      matrix:   ${{ steps.m.outputs.matrix }}
     steps:
       - name: Tools
         run: |
@@ -66,19 +65,29 @@ jobs:
           fi
           sh scripts/detect.sh $args | tee -a "$GITHUB_OUTPUT"
 
-      - id: m
-        name: Build the matrix
-        run: |
-          set -eu
-          arches="${{ vars.BUILD_ARCHES || 'amd64 arm64' }}"
-          echo "matrix=$(sh scripts/matrix.sh $arches)" >> "$GITHUB_OUTPUT"
-
   build:
     needs: detect
-    if: needs.detect.outputs.changed == 'true'
+    if: ${{ needs.detect.outputs.changed == 'true' && contains(vars.BUILD_ARCHES || 'amd64 arm64', matrix.arch) }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+      matrix:
+        include:
+          - suite: trixie
+            image: debian:trixie
+            arch: amd64
+            runner: ubuntu-latest
+          - suite: trixie
+            image: debian:trixie
+            arch: arm64
+            runner: ubuntu-24.04-arm
+          - suite: resolute
+            image: ubuntu:26.04
+            arch: amd64
+            runner: ubuntu-latest
+          - suite: resolute
+            image: ubuntu:26.04
+            arch: arm64
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.image }}
     steps:
@@ -211,9 +220,27 @@ jobs:
 
   install-test:
     needs: [detect, repo]
+    if: ${{ contains(vars.BUILD_ARCHES || 'amd64 arm64', matrix.arch) }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+      matrix:
+        include:
+          - suite: trixie
+            image: debian:trixie
+            arch: amd64
+            runner: ubuntu-latest
+          - suite: trixie
+            image: debian:trixie
+            arch: arm64
+            runner: ubuntu-24.04-arm
+          - suite: resolute
+            image: ubuntu:26.04
+            arch: amd64
+            runner: ubuntu-latest
+          - suite: resolute
+            image: ubuntu:26.04
+            arch: arm64
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.image }}
     steps:
