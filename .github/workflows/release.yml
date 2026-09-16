@@ -1,0 +1,36 @@
+name: release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: upstream version to build (e.g. 2.54.0)
+        type: string
+        required: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: trixie
+            image: debian:trixie
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install git and nodejs for checkout
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates nodejs
+
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: sh scripts/build-debs.sh "${{ inputs.version }}" "${{ matrix.suite }}" "$PWD/out"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs-${{ matrix.suite }}-amd64
+          path: out/*.deb

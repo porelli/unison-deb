@@ -1,0 +1,42 @@
+Source: unison
+Section: net
+Priority: optional
+Maintainer: Michele Porelli <Linux571@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               ocaml-nox | ocaml,
+               ocaml-findlib,
+               liblablgtk3-ocaml-dev,
+               pkg-config
+Standards-Version: 4.7.0
+Homepage: https://github.com/bcpierce00/unison
+Rules-Requires-Root: no
+
+Package: unison
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: unison-fsmonitor
+Description: file synchronization tool, with fsmonitor
+ Unison is a file synchronization tool for POSIX systems and Windows. Two
+ replicas of a collection of files and directories can be stored on different
+ hosts, modified separately, and then brought up to date by propagating the
+ changes in each replica to the other.
+ .
+ This package is built from the current upstream release and, unlike the
+ distribution's own unison package, includes unison-fsmonitor. Without that
+ binary "unison -repeat watch" cannot work and continuous synchronization
+ degrades to polling.
+ .
+ Note that Unison requires the same version at both ends of a synchronization.
+
+Package: unison-gtk
+Architecture: any
+Depends: unison (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: file synchronization tool, with fsmonitor (GTK interface)
+ Unison is a file synchronization tool for POSIX systems and Windows. Two
+ replicas of a collection of files and directories can be stored on different
+ hosts, modified separately, and then brought up to date by propagating the
+ changes in each replica to the other.
+ .
+ This package provides the GTK graphical interface, installed as unison-gui
+ with a unison-gtk compatibility symlink, along with the desktop entry and
+ icons that upstream ships and the distribution's packages omit.

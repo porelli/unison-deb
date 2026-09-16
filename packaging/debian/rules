@@ -1,0 +1,36 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+# Upstream's default target already builds the text UI, the GUI when lablgtk3 is
+# present, and fsmonitor. The targets are named explicitly so a missing lablgtk3
+# fails here, loudly, rather than silently yielding a package with no GUI.
+override_dh_auto_build:
+	$(MAKE) tui fsmonitor gui
+	# NOT `make manpage` -- upstream's manpage and docs targets are empty
+	# no-ops. Only manpagefile builds anything, by expanding man/unison.1.in
+	# with the freshly built binary's -prefsman output.
+	$(MAKE) -C src manpagefile
+	./src/unison -doc all > unison-manual.txt
+	test -s man/unison.1
+	test -s unison-manual.txt
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	mkdir -p debian/.home
+	HOME=$(CURDIR)/debian/.home $(MAKE) test
+endif
+
+# Upstream's install target honours DESTDIR and PREFIX and places the binaries,
+# man page, desktop entry and icon theme files. Stage it all, then let the
+# per-package .install files split it.
+override_dh_auto_install:
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp PREFIX=/usr
+
+override_dh_installchangelogs:
+	dh_installchangelogs NEWS.md
+
+override_dh_auto_clean:
+	-$(MAKE) clean
+	rm -rf debian/.home unison-manual.txt
