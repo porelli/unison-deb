@@ -36,6 +36,8 @@ for suite in $(suite_list); do
   # apt-ftparchive checksums everything under the directory it is given, so the
   # output must not be written there while it runs.
   tmprel="$(mktemp)"
+  # shellcheck disable=SC2064  # we want $tmprel to expand now, not at signal time
+  trap "rm -f $tmprel" EXIT
   ( cd "$repo" && apt-ftparchive \
       -o "APT::FTPArchive::Release::Origin=$REPO_ORIGIN" \
       -o "APT::FTPArchive::Release::Label=$REPO_LABEL" \

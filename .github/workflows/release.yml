@@ -80,10 +80,14 @@ jobs:
           set -eu
           printf '%s' "$APT_SIGNING_KEY" | gpg --batch --import
           gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/{print $10; exit}' > keyid.txt
+          [ -s keyid.txt ] || { echo "error: APT_SIGNING_KEY secret is empty or invalid" >&2; exit 1; }
           echo "imported $(cat keyid.txt)"
 
       - name: Assemble and sign
         run: sh scripts/make-repo.sh "$PWD/repo" "$(cat keyid.txt)" amd64
+
+      - name: Test multiversion indexing
+        run: sh tests/test-multiversion.sh repo/pool/trixie/main/u/unison/unison_*.deb
 
       - name: Verify keyring in indices
         run: |
