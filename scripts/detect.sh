@@ -23,6 +23,7 @@ while [ $# -gt 0 ]; do
 done
 
 pkgrev="$(cat packaging/revision)"
+keyringrev="$(cat packaging/keyring-revision)"
 
 if [ -z "$version" ]; then
   if [ -n "${UNISON_RELEASE_JSON:-}" ]; then
@@ -40,7 +41,7 @@ fi
 
 [ -n "$version" ] || { echo "could not determine upstream version" >&2; exit 1; }
 
-target="$version+porelli$pkgrev"
+target="$version+porelli${pkgrev}k${keyringrev}"
 
 published=""
 if [ -n "$state" ] && [ -f "$state" ]; then

@@ -33,7 +33,7 @@ It is also why the previous two versions are kept installable:
 
 ```sh
 apt-cache madison unison
-sudo apt install unison=2.54.0-1+porelli1~deb13
+sudo apt install unison=<version-from-above>
 ```
 
 ## How it works

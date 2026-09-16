@@ -10,9 +10,9 @@ get() { printf '%s\n' "$1" | awk -F= -v k="$2" '$1==k{print $2}'; }
 
 # No state at all: everything is new.
 out="$(sh scripts/detect.sh --state /nonexistent)"
-assert_eq "$(get "$out" upstream)" "2.54.0"          "upstream parsed from tag_name"
-assert_eq "$(get "$out" target)"   "2.54.0+porelli3" "target includes the packaging revision"
-assert_eq "$(get "$out" changed)"  "true"            "no state means changed"
+assert_eq "$(get "$out" upstream)" "2.54.0"            "upstream parsed from tag_name"
+assert_eq "$(get "$out" target)"   "2.54.0+porelli3k1" "target includes packaging and keyring revision"
+assert_eq "$(get "$out" changed)"  "true"              "no state means changed"
 
 # State matching the target: nothing to do.
 out="$(sh scripts/detect.sh --state tests/fixtures/state-2.54.0.json)"

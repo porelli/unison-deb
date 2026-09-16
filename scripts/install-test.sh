@@ -59,9 +59,10 @@ echo "ok   candidate is $want"
 echo "==> unison must install without pulling in GTK"
 apt-get install -y unison
 inst="$(dpkg-query -W -f='${Package}\n' | sort)"
-if printf '%s\n' "$inst" | grep -qiE '^libgtk|^libx11-[0-9]|^libcairo2$'; then
+# Aligned with test-deb-contents.sh to catch gtk, libx11, libcairo, libpango, and gdk-pixbuf
+if printf '%s\n' "$inst" | grep -qiE 'gtk|libx11|libcairo|libpango|gdk-pixbuf'; then
   echo "FAIL installing unison alone pulled in GUI libraries:" >&2
-  printf '%s\n' "$inst" | grep -iE '^libgtk|^libx11-[0-9]|^libcairo2$' >&2
+  printf '%s\n' "$inst" | grep -iE 'gtk|libx11|libcairo|libpango|gdk-pixbuf' >&2
   exit 1
 fi
 echo "ok   no GUI libraries pulled in"

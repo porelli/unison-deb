@@ -27,9 +27,18 @@ g_files="$(dpkg-deb -c "$gtk_deb")"
 u_ctrl="$(dpkg-deb -f "$unison_deb")"
 g_ctrl="$(dpkg-deb -f "$gtk_deb")"
 
-# The entire point of the project.
-assert_contains "$u_files" "./usr/bin/unison-fsmonitor" "unison ships unison-fsmonitor"
-assert_contains "$u_files" "./usr/bin/unison"           "unison ships unison"
+# The entire point of the project. Match whole paths to avoid false positives
+# (e.g. "./usr/bin/unison" matching "./usr/bin/unison-fsmonitor").
+if ! printf '%s\n' "$u_files" | grep -q ' \./usr/bin/unison-fsmonitor$'; then
+  printf 'FAIL unison does not ship unison-fsmonitor\n'; FAILED=1
+else
+  printf 'ok   unison ships unison-fsmonitor\n'
+fi
+if ! printf '%s\n' "$u_files" | grep -q ' \./usr/bin/unison$'; then
+  printf 'FAIL unison does not ship unison\n'; FAILED=1
+else
+  printf 'ok   unison ships unison\n'
+fi
 assert_contains "$u_files" "./usr/share/man/man1/unison.1" "unison ships its man page"
 assert_contains "$u_files" "unison-manual.txt"          "unison ships the text manual"
 
@@ -45,8 +54,17 @@ case "$u_deps" in
   *) printf 'ok   unison has no GUI dependencies\n' ;;
 esac
 
-assert_contains "$g_files" "./usr/bin/unison-gui" "unison-gtk ships unison-gui"
-assert_contains "$g_files" "./usr/bin/unison-gtk" "unison-gtk ships the compat symlink"
+# Match whole paths for the binaries to avoid false substring matches
+if ! printf '%s\n' "$g_files" | grep -q ' \./usr/bin/unison-gui$'; then
+  printf 'FAIL unison-gtk does not ship unison-gui\n'; FAILED=1
+else
+  printf 'ok   unison-gtk ships unison-gui\n'
+fi
+if ! printf '%s\n' "$g_files" | grep -q ' \./usr/bin/unison-gtk$'; then
+  printf 'FAIL unison-gtk does not ship the compat symlink\n'; FAILED=1
+else
+  printf 'ok   unison-gtk ships the compat symlink\n'
+fi
 assert_contains "$g_files" "unison-gui.desktop"   "unison-gtk ships the desktop entry"
 assert_contains "$g_files" "icons/hicolor"        "unison-gtk ships icons"
 assert_eq "$(printf '%s\n' "$g_ctrl" | awk '/^Version:/{print $2}')" \

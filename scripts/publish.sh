@@ -18,7 +18,8 @@ cd "$repo"
 rm -rf .git
 git init -q -b "$branch"
 git config user.name  "unison-deb CI"
-git config user.email "Linux571@gmail.com"
+# Extract email from MAINTAINER (format: "Name <email>")
+git config user.email "$(printf '%s' "$MAINTAINER" | sed -n 's/.*<\(.*\)>.*/\1/p')"
 
 # Published debs are binaries; keep git from mangling them or guessing text.
 printf '* -text -diff\n' > .gitattributes

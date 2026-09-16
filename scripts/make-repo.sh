@@ -18,6 +18,11 @@ arches="$*"
 
 repo="$(cd "$repo" && pwd)"
 
+# Track temp files so they all get cleaned up on exit
+tmpfiles=""
+# shellcheck disable=SC2154  # f is a loop variable inside the trap command string
+trap 'for f in $tmpfiles; do rm -f "$f"; done' EXIT
+
 for suite in $(suite_list); do
   [ -d "$repo/pool/$suite" ] || { echo "no pool for $suite, skipping" >&2; continue; }
 
@@ -36,8 +41,7 @@ for suite in $(suite_list); do
   # apt-ftparchive checksums everything under the directory it is given, so the
   # output must not be written there while it runs.
   tmprel="$(mktemp)"
-  # shellcheck disable=SC2064  # we want $tmprel to expand now, not at signal time
-  trap "rm -f $tmprel" EXIT
+  tmpfiles="$tmpfiles $tmprel"
   ( cd "$repo" && apt-ftparchive \
       -o "APT::FTPArchive::Release::Origin=$REPO_ORIGIN" \
       -o "APT::FTPArchive::Release::Label=$REPO_LABEL" \
@@ -54,7 +58,13 @@ for suite in $(suite_list); do
       --clearsign -o "$repo/dists/$suite/InRelease" "$repo/dists/$suite/Release"
   gpg --batch --yes --local-user "$keyid" --armor \
       --detach-sign -o "$repo/dists/$suite/Release.gpg" "$repo/dists/$suite/Release"
+
+  # Verify the InRelease was signed by the published key, not just any key in the keyring
+  if ! gpg --batch --verify --keyring "$root/packaging/keys/unison-deb.asc" "$repo/dists/$suite/InRelease" 2>&1 | grep -q "Good signature"; then
+    echo "ERROR: $suite InRelease not verifiable against published key" >&2
+    exit 1
+  fi
+  echo "verified: $suite InRelease is signed by the published key"
 done
 
-# shellcheck disable=SC2086  # $arches must word-split into separate arguments
-sh "$root/tests/test-repo-layout.sh" "$repo" $arches
+sh "$root/tests/test-repo-layout.sh" "$repo"

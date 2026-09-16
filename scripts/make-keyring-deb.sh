@@ -29,7 +29,7 @@ Types: deb
 URIs: $REPO_URL
 Suites: $codename
 Components: main
-Architectures: amd64 arm64
+Architectures: $ARCHES
 Signed-By: /usr/share/keyrings/$KEYRING_FILE
 EOF
 

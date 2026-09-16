@@ -4,6 +4,13 @@
 # the platform.
 name: release
 
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   schedule:
     - cron: '17 5 * * *'
@@ -54,8 +61,9 @@ jobs:
 
       - id: d
         name: Detect
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           args="--state published-state.json"
           if [ "${{ inputs.force }}" = "true" ]; then
             args="$args --force"
@@ -127,7 +135,11 @@ jobs:
 
   repo:
     needs: [detect, build-amd64, build-arm64]
-    if: ${{ !cancelled() && needs.detect.outputs.changed == 'true' }}
+    if: ${{ !cancelled()
+            && needs.detect.outputs.changed == 'true'
+            && needs.detect.result == 'success'
+            && needs.build-amd64.result != 'failure'
+            && needs.build-arm64.result != 'failure' }}
     runs-on: ubuntu-latest
     container: debian:trixie
     steps:
@@ -222,6 +234,14 @@ jobs:
       - name: Assemble and sign
         run: sh scripts/make-repo.sh "$PWD/repo" "$(cat keyid.txt)" ${{ vars.BUILD_ARCHES || 'amd64 arm64' }}
 
+      - name: Test multiversion indexing
+        run: |
+          set -eu
+          # Use any deb from trixie's pool as the test input
+          deb="$(find repo/pool/trixie/main/u/unison -name 'unison_*.deb' | head -1)"
+          [ -n "$deb" ] || { echo "no test deb found" >&2; exit 1; }
+          sh tests/test-multiversion.sh "$deb"
+
       - name: Record the state and write the landing page
         run: |
           set -eu
@@ -309,10 +329,18 @@ jobs:
           sh scripts/install-test.sh "$PWD/repo" "${{ matrix.suite }}" "$version" "$previous"
 
   publish:
-    needs: [detect, install-test-amd64, install-test-arm64]
-    if: ${{ !cancelled() && needs.detect.outputs.changed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
+    needs: [detect, repo, install-test-amd64, install-test-arm64]
+    if: ${{ !cancelled()
+            && needs.detect.outputs.changed == 'true'
+            && needs.detect.result == 'success'
+            && needs.repo.result == 'success'
+            && needs.install-test-amd64.result != 'failure'
+            && needs.install-test-arm64.result != 'failure'
+            && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
     runs-on: ubuntu-latest
     container: debian:trixie
+    permissions:
+      contents: write
     steps:
       - name: Tools
         run: |
@@ -334,8 +362,9 @@ jobs:
       - name: Publish
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           remote="$(git remote get-url origin | sed "s#https://#https://x-access-token:$TOKEN@#")"
           sh scripts/publish.sh "$PWD/repo" "$remote" \
             "${{ vars.PUBLISH_BRANCH || 'apt-repo' }}" \
