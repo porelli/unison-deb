@@ -239,32 +239,54 @@ made against real output.
 
 ## Repository generation and signing
 
-`reprepro`, not `apt-ftparchive`. Two suites, two architectures, and an
-`Architecture: all` package together mean pool layout, per-suite `dists/`, and
-duplicating arch:all into each `binary-<arch>` index — reprepro does all of it
-from one config, and `apt-ftparchive` would mean hand-rolling it.
+`dpkg-scanpackages` plus `apt-ftparchive release` plus `gpg`. **Not `reprepro`**,
+which an earlier draft of this spec specified and which cannot do the job:
+reprepro's data model holds exactly one version of a package per distribution.
+Its manpage has no field for retaining more, and its `older_version` ignore-option
+exists precisely because feeding it an older version than the one it holds is an
+error. That is irreconcilable with retaining old versions, below.
 
-reprepro's Berkeley DB is regenerated from scratch in a scratch basedir on every
-run and never committed; a binary database churning in git history is a
-slow-motion mistake. Its inputs are the freshly built debs plus older debs
-pulled from the currently published branch, retaining **3 upstream versions in
-total** — the one being published plus the two preceding it.
+The pipeline is stateless — no database, nothing to persist or regenerate:
+
+```sh
+# per suite, per architecture
+dpkg-scanpackages --multiversion --arch "$arch" "pool/$suite" \
+  > "dists/$suite/main/binary-$arch/Packages"
+gzip -9kf "dists/$suite/main/binary-$arch/Packages"
+# per suite
+apt-ftparchive release "dists/$suite" > "dists/$suite/Release"
+gpg --clearsign  -o "dists/$suite/InRelease"   "dists/$suite/Release"
+gpg --detach-sign -o "dists/$suite/Release.gpg" "dists/$suite/Release"
+```
+
+Two `dpkg-scanpackages` flags carry the whole design:
+
+- **`--multiversion`** ("include all found packages in the output"). Without it,
+  only the newest version of each package is indexed, and version retention
+  silently fails — the debs would sit in the pool, unreachable.
+- **`--arch <arch>`**, which matches the pattern `*_all.deb` and `*_<arch>.deb`.
+  `Architecture: all` packages therefore land in *every* per-architecture index
+  with no extra work, which is what makes `unison-apt-keyring` installable
+  everywhere. This is the mechanism; there is no `binary-all/` directory and
+  `all` is deliberately absent from the `Release` file's `Architectures`.
+
+The pool is arranged per suite (`pool/<suite>/main/u/unison/…`) so a single
+`dpkg-scanpackages` invocation naturally scopes to one suite.
+
+Retention: the fresh debs plus older debs carried forward from the currently
+published branch, keeping **3 upstream versions in total** — the one being
+published plus the two preceding it. Because the tool is stateless, retention is
+simply which files are in the pool.
 
 Retaining old versions is not sentimentality. Unison requires matching versions
 on both ends of a sync, so when 2.54.1 lands and a fleet upgrades host by host,
 `apt install unison=2.54.0-1+porelli1~deb13` has to keep working or syncing
 breaks mid-migration.
 
-`Release` fields: `Origin`, `Label`, `Suite`, `Codename`,
-`Architectures: amd64 arm64`, `Components: main`. Both a signed `InRelease` and
-a detached `Release.gpg` are published.
-
-`all` is deliberately absent from `Architectures`. With `all` listed, reprepro
-publishes a separate `binary-all/` index, which older apt clients do not consult;
-with it absent, reprepro copies `Architecture: all` packages into every
-`binary-<arch>` index instead. The second behaviour is what makes
-`unison-apt-keyring` installable everywhere, so the omission is the mechanism,
-not an oversight.
+`Release` fields, set via `-o APT::FTPArchive::Release::*`: `Origin`, `Label`,
+`Suite`, `Codename`, `Architectures: amd64 arm64`, `Components: main`. Both a
+signed `InRelease` and a detached `Release.gpg` are published, the latter for
+clients that still look for it.
 
 ### Signing key
 
@@ -272,14 +294,23 @@ One repo-only ed25519 key, **generated with no passphrase**, stored as the
 `APT_SIGNING_KEY` secret (armoured private key). The public key is published at
 `/unison-apt.asc` and shipped inside `unison-apt-keyring`.
 
-Passphrase-less is a deliberate weakening of the original plan, recorded here
-because it is easy to mistake for an oversight. reprepro signs through gpgme,
-which ignores `--pinentry-mode loopback` and `--passphrase-fd`, so a passphrase
-would require `gpg-preset-passphrase` plus `allow-preset-passphrase` in
-`gpg-agent.conf` inside CI. And the passphrase would live in the same secret
-store as the key it protects, so it defends against essentially nothing that
-compromising the store would not already defeat. The real control is the secret
-store, plus the key being useful for nothing but this repo.
+Passphrase-less is a deliberate weakening, recorded here because it is easy to
+mistake for an oversight.
+
+Note that its **original justification no longer holds**. That justification was
+that reprepro signs through gpgme, which ignores `--pinentry-mode loopback` and
+`--passphrase-fd`, making a passphrase require `gpg-preset-passphrase` and
+`allow-preset-passphrase` in CI. Since signing now invokes `gpg` directly, a
+passphrase is trivially supportable and that obstacle is gone.
+
+What remains is the weaker but standalone argument: the passphrase would live in
+the same secret store as the key it protects, so it defends against essentially
+nothing that compromising the store would not already defeat. The real controls
+are the secret store and the key being useful for nothing but this repo.
+
+This is therefore a judgment call rather than a constraint, and it is cheap to
+reverse: add a second secret and a `--batch --pinentry-mode loopback
+--passphrase-fd 3` to the two `gpg` calls.
 
 If the key is ever compromised: generate a new one, publish an updated
 `unison-apt-keyring` shipping both old and new public keys, wait for clients to
@@ -301,11 +332,16 @@ Per suite × arch, before anything is published:
 5. Assert that installing `unison` alone pulls in no GTK packages, by installing
    it in a container without `unison-gtk` and checking the resolved dependency
    set. This is what keeps risk 3 from reaching headless servers.
-6. **Run a real sync under `unison -repeat watch`** between two local
+6. Assert that a retained older version is installable — `apt-cache madison
+   unison` lists more than one version, and `apt install unison=<previous>`
+   succeeds. This is the only check that would catch a missing `--multiversion`,
+   which otherwise fails silently. Skipped on the first ever run, when there is
+   no previous version to retain.
+7. **Run a real sync under `unison -repeat watch`** between two local
    directories: touch a file, confirm it propagates.
 
-Step 6 is the test that proves the premise. Steps 1–5 confirm a file is on disk
-and apt is willing to install it; only step 6 shows that fsmonitor does its job.
+Step 7 is the test that proves the premise. Steps 1–6 confirm a file is on disk
+and apt is willing to install it; only step 7 shows that fsmonitor does its job.
 
 arm64 install tests run on the arm64 runner, natively.
 
@@ -390,9 +426,12 @@ served tree, and Pages introduces its own caching and MIME behaviour.
    4.14, and 5.x, but 5.4 is newer than anything it covers. The resolute build
    is the likeliest to break. It surfaces as a failed job, not a bad package,
    because publication is gated on all builds and install tests passing.
-2. **reprepro's arch:all handling across two suites** is the kind of thing that
-   looks correct and is not. The install test against real apt is what catches
-   it; nothing else in the pipeline would.
+2. **Index generation has two silent-failure modes**, both invisible without a
+   real apt client: omitting `--multiversion` indexes only the newest version, so
+   retained debs sit in the pool unreachable; and a wrong `--arch` pattern drops
+   `unison-apt-keyring` out of a per-architecture index, breaking the bootstrap
+   for that architecture only. Neither produces an error. The install test
+   against real apt is what catches them, which is why it gates publication.
 3. **A GTK dependency chain resolved by `dh_shlibdeps`** could pull a large
    dependency set onto headless servers via `unison-gtk`. Mitigated by
    `unison-gtk` being a separate package nobody has to install; `unison` itself
