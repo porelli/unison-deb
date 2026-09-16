@@ -16,10 +16,6 @@ want="${3:?expected version required}"
 previous="${4:-}"
 repo="$(cd "$repo" && pwd)"
 
-# TEMPORARY: Force failure to prove C1 gating works
-echo "PROOF: deliberately failing to test C1 gate" >&2
-exit 1
-
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends python3 ca-certificates
