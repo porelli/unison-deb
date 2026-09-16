@@ -184,7 +184,7 @@ jobs:
             echo "$suite keeping: $(echo "$keep" | tr '\n' ' ')"
             for f in "$dir"/unison_*.deb "$dir"/unison-gtk_*.deb "$dir"/unison-dbgsym_*.deb "$dir"/unison-gtk-dbgsym_*.deb; do
               [ -e "$f" ] || continue
-              v="$(basename "$f" | sed -n 's/^unison[a-z-]*_\([0-9][^-]*\)-.*/\1/p')"
+              v="$(basename "$f" | sed -n 's/^unison[-a-z]*_\([0-9][^-]*\)-.*/\1/p')"
               if ! printf '%s\n' "$keep" | grep -qx "$v"; then
                 echo "pruning $f"; rm -f "$f"
               fi
