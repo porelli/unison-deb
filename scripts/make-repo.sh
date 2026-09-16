@@ -28,11 +28,14 @@ for suite in $(suite_list); do
 
   for arch in $arches; do
     mkdir -p "$repo/dists/$suite/main/binary-$arch"
-    # --multiversion is what keeps older retained versions reachable; without
-    # it only the newest version of each package is indexed and the rest sit
-    # in the pool unreferenced.
-    # --arch matches *_all.deb and *_<arch>.deb, which is how the arch:all
-    # keyring package lands in every per-arch index.
+    # This pipeline uses dpkg-scanpackages + apt-ftparchive, not reprepro, because
+    # reprepro holds at most one version of a package per suite. Retaining 3 versions
+    # (needed because Unison refuses to sync between mismatched versions, so a fleet
+    # upgrading host-by-host requires previous versions to remain installable) is
+    # irreconcilable with reprepro's data model. The stateless pipeline below indexes
+    # all versions in the pool; --multiversion keeps older versions reachable instead
+    # of indexing only the newest. --arch matches *_all.deb and *_<arch>.deb, which is
+    # how the arch:all keyring package lands in every per-arch index.
     ( cd "$repo" && dpkg-scanpackages --multiversion --arch "$arch" "pool/$suite" ) \
       > "$repo/dists/$suite/main/binary-$arch/Packages"
     gzip -9nkf "$repo/dists/$suite/main/binary-$arch/Packages"

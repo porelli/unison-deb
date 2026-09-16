@@ -30,6 +30,15 @@ on:
         default: true
 
 jobs:
+  # Jobs are per-architecture rather than a dynamic matrix to work on both platforms.
+  # GitHub expands fromJSON(needs.*.outputs.matrix) into multiple jobs automatically.
+  # Gitea Actions does not: it creates a single unexpanded job with an unresolvable
+  # runs-on label that sits queued forever with no error. Since the workflow must run
+  # on both, static per-arch jobs (with literal runs-on values) are the only form that
+  # works everywhere. Attempts to work around this (e.g., matrix with job-level if:)
+  # caused downstream jobs to skip incorrectly on Gitea, so job-level if: references
+  # only vars.BUILD_ARCHES, never matrix context.
+
   detect:
     runs-on: ubuntu-latest
     container: debian:trixie
@@ -43,9 +52,14 @@ jobs:
           set -eux
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates curl nodejs
-          # Jobs running in a container see a checkout owned by another uid, and
-          # git then refuses to operate on it ("dubious ownership"). checkout@v4
-          # handles its own calls; our later `git fetch`/`git show` need this.
+          # nodejs is installed *before* checkout because actions/checkout is a
+          # JavaScript action; a bare distro container has no node, so checkout fails
+          # with "exec: node: executable file not found in $PATH". This is a no-op on
+          # GitHub (which mounts node into containers), but essential here for both
+          # platforms to share one workflow. Without it, Gitea's containerized runs fail.
+          # Separate issue: git in containers refuses to operate on checkouts owned by
+          # other uids ("dubious ownership"). checkout@v4 handles its own calls; our
+          # later `git fetch`/`git show` need this config.
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - uses: actions/checkout@v4
