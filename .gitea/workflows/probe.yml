@@ -36,19 +36,30 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@v4
 
-      - name: Q3 fallback - fetch test files if checkout failed
-        if: always() && steps.q3.outcome == 'failure'
-        run: |
-          printf '=== Q3 failed, fetching test files directly ===\n'
-          mkdir -p tests
-          curl -fsSL https://gitea.porelli.eu/claude/unison-deb/raw/branch/main/tests/test-dpkg-order.sh -o tests/test-dpkg-order.sh
-          curl -fsSL https://gitea.porelli.eu/claude/unison-deb/raw/branch/main/tests/assert.sh -o tests/assert.sh
-
       - name: Q4 - Version ordering against real dpkg
         if: always()
         run: |
           printf '=== Q4: version ordering test ===\n'
-          sh tests/test-dpkg-order.sh
+          # Inline test since checkout doesn't work in bare container
+          gt() {
+            if dpkg --compare-versions "$1" gt "$2"; then
+              printf 'ok   %s > %s\n' "$1" "$2"
+            else
+              printf 'FAIL %s is not > %s\n' "$1" "$2"
+              return 1
+            fi
+          }
+
+          # Run the version ordering assertions
+          gt '2.54.0-1+porelli1~deb13'  '2.53+1-1' &&
+          gt '2.54.0-1+porelli1~ub2604' '2.53+1build1' &&
+          gt '2.54.0-1+porelli1~deb13'  '2.54.0-1' &&
+          gt '2.54.0-1+porelli1~ub2604' '2.54.0-1' &&
+          gt '2.54.0-1+porelli1~deb14'  '2.54.0-1+porelli1~deb13' &&
+          gt '2.54.0-1+porelli1~ub2804' '2.54.0-1+porelli1~ub2604' &&
+          gt '2.55.0-1+porelli1~deb13'  '2.54.0-1+porelli1~deb13' &&
+          gt '2.54.0-1+porelli2~deb13'  '2.54.0-1+porelli1~deb13' &&
+          printf '\nAll version ordering tests passed!\n'
 
   nested-docker:
     runs-on: ubuntu-latest
