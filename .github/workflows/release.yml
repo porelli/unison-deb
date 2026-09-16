@@ -65,30 +65,18 @@ jobs:
           fi
           sh scripts/detect.sh $args | tee -a "$GITHUB_OUTPUT"
 
-  build:
+  build-amd64:
     needs: detect
-    if: ${{ needs.detect.outputs.changed == 'true' && contains(vars.BUILD_ARCHES || 'amd64 arm64', matrix.arch) }}
+    if: ${{ needs.detect.outputs.changed == 'true' && contains(vars.BUILD_ARCHES || 'amd64 arm64', 'amd64') }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - suite: trixie
             image: debian:trixie
-            arch: amd64
-            runner: ubuntu-latest
-          - suite: trixie
-            image: debian:trixie
-            arch: arm64
-            runner: ubuntu-24.04-arm
           - suite: resolute
             image: ubuntu:26.04
-            arch: amd64
-            runner: ubuntu-latest
-          - suite: resolute
-            image: ubuntu:26.04
-            arch: arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     container: ${{ matrix.image }}
     steps:
       - name: Tools
@@ -104,11 +92,42 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: debs-${{ matrix.suite }}-${{ matrix.arch }}
+          name: debs-${{ matrix.suite }}-amd64
+          path: out/*.deb
+
+  build-arm64:
+    needs: detect
+    if: ${{ needs.detect.outputs.changed == 'true' && contains(vars.BUILD_ARCHES || 'amd64 arm64', 'arm64') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: trixie
+            image: debian:trixie
+          - suite: resolute
+            image: ubuntu:26.04
+    runs-on: ubuntu-24.04-arm
+    container: ${{ matrix.image }}
+    steps:
+      - name: Tools
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates nodejs
+
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: sh scripts/build-debs.sh "${{ needs.detect.outputs.upstream }}" "${{ matrix.suite }}" "$PWD/out"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs-${{ matrix.suite }}-arm64
           path: out/*.deb
 
   repo:
-    needs: [detect, build]
+    needs: [detect, build-amd64, build-arm64]
+    if: ${{ !cancelled() && needs.detect.outputs.changed == 'true' }}
     runs-on: ubuntu-latest
     container: debian:trixie
     steps:
@@ -218,30 +237,52 @@ jobs:
           name: repo
           path: repo
 
-  install-test:
+  install-test-amd64:
     needs: [detect, repo]
-    if: ${{ contains(vars.BUILD_ARCHES || 'amd64 arm64', matrix.arch) }}
+    if: ${{ contains(vars.BUILD_ARCHES || 'amd64 arm64', 'amd64') }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - suite: trixie
             image: debian:trixie
-            arch: amd64
-            runner: ubuntu-latest
+          - suite: resolute
+            image: ubuntu:26.04
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    steps:
+      - name: Tools
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates nodejs
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: repo
+          path: repo
+
+      - name: Install from the repository and sync for real
+        run: |
+          set -eu
+          version="$(sh scripts/deb-version.sh "${{ needs.detect.outputs.upstream }}" "${{ matrix.suite }}")"
+          previous="$(sh scripts/previous-version.sh repo "${{ matrix.suite }}" "$version")"
+          sh scripts/install-test.sh "$PWD/repo" "${{ matrix.suite }}" "$version" "$previous"
+
+  install-test-arm64:
+    needs: [detect, repo]
+    if: ${{ contains(vars.BUILD_ARCHES || 'amd64 arm64', 'arm64') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - suite: trixie
             image: debian:trixie
-            arch: arm64
-            runner: ubuntu-24.04-arm
           - suite: resolute
             image: ubuntu:26.04
-            arch: amd64
-            runner: ubuntu-latest
-          - suite: resolute
-            image: ubuntu:26.04
-            arch: arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-24.04-arm
     container: ${{ matrix.image }}
     steps:
       - name: Tools
@@ -265,8 +306,8 @@ jobs:
           sh scripts/install-test.sh "$PWD/repo" "${{ matrix.suite }}" "$version" "$previous"
 
   publish:
-    needs: [detect, install-test]
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
+    needs: [detect, install-test-amd64, install-test-arm64]
+    if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
     runs-on: ubuntu-latest
     container: debian:trixie
     steps:
