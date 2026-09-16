@@ -10,6 +10,9 @@ cd "$(dirname "$0")/.."
 TESTS="
   tests/test-version.sh
   tests/test-dpkg-order.sh
+  tests/test-detect.sh
+  tests/test-matrix.sh
+  tests/test-publish.sh
 "
 
 rc=0
