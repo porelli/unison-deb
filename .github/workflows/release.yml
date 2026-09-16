@@ -43,3 +43,57 @@ jobs:
         with:
           name: debs-${{ matrix.suite }}-amd64
           path: out/*.deb
+
+  repo:
+    needs: build
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Tools
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            git ca-certificates dpkg-dev apt-utils gnupg nodejs
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: debs-*
+          path: incoming
+
+      - name: Lay out the pool
+        run: |
+          set -eux
+          for d in incoming/debs-*; do
+            suite="$(basename "$d" | cut -d- -f2)"
+            mkdir -p "repo/pool/$suite/main/u/unison"
+            cp "$d"/*.deb "repo/pool/$suite/main/u/unison/"
+          done
+          find repo -name '*.deb' | sort
+
+      - name: Import the signing key
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          set -eu
+          printf '%s' "$APT_SIGNING_KEY" | gpg --batch --import
+          gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/{print $10; exit}' > keyid.txt
+          echo "imported $(cat keyid.txt)"
+
+      - name: Assemble and sign
+        run: sh scripts/make-repo.sh "$PWD/repo" "$(cat keyid.txt)" amd64
+
+      - name: Verify keyring in indices
+        run: |
+          set -eux
+          for suite in trixie resolute; do
+            echo "=== $suite/amd64 Packages (keyring entries) ==="
+            grep -A5 "^Package: unison-deb-keyring$" "repo/dists/$suite/main/binary-amd64/Packages" || echo "MISSING"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repo
+          path: repo
