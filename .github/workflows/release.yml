@@ -307,7 +307,7 @@ jobs:
 
   publish:
     needs: [detect, install-test-amd64, install-test-arm64]
-    if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
+    if: ${{ !cancelled() && needs.detect.outputs.changed == 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
     runs-on: ubuntu-latest
     container: debian:trixie
     steps:
