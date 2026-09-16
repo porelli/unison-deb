@@ -182,7 +182,7 @@ jobs:
             keep="$(ls "$dir" | sed -n 's/^unison_\([0-9][^-]*\)-.*/\1/p' \
                     | sort -Vru | head -3)"
             echo "$suite keeping: $(echo "$keep" | tr '\n' ' ')"
-            for f in "$dir"/unison_*.deb "$dir"/unison-gtk_*.deb; do
+            for f in "$dir"/unison_*.deb "$dir"/unison-gtk_*.deb "$dir"/unison-dbgsym_*.deb "$dir"/unison-gtk-dbgsym_*.deb; do
               [ -e "$f" ] || continue
               v="$(basename "$f" | sed -n 's/^unison[a-z-]*_\([0-9][^-]*\)-.*/\1/p')"
               if ! printf '%s\n' "$keep" | grep -qx "$v"; then
