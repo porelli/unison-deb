@@ -199,8 +199,8 @@ jobs:
             mkdir -p "repo/bootstrap/$suite" "repo/pool/$suite/main/u/unison"
             sh scripts/make-keyring-deb.sh "$suite" packaging/keys/unison-deb.asc "repo/bootstrap/$suite"
             cp "repo/bootstrap/$suite"/*.deb "repo/pool/$suite/main/u/unison/"
-            # Add a version-free alias for the keyring package
-            cp "repo/bootstrap/$suite"/*.deb "repo/bootstrap/$suite/unison-deb-keyring.deb"
+            # Add a version-free alias for the keyring package (match only the versioned deb)
+            cp "repo/bootstrap/$suite"/unison-deb-keyring_*_all.deb "repo/bootstrap/$suite/unison-deb-keyring.deb"
           done
           cp packaging/keys/unison-deb.asc repo/unison-deb.asc
 
