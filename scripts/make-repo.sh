@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 root="$(pwd)"
 # shellcheck source=scripts/lib.sh
 . scripts/lib.sh
-# shellcheck source=packaging/repo.conf
+# shellcheck source=/dev/null
 . packaging/repo.conf
 
 repo="${1:?repo dir required}"; shift

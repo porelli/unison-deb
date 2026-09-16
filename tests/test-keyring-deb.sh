@@ -4,7 +4,7 @@ set -eu
 cd "$(dirname "$0")/.."
 # shellcheck source=tests/assert.sh
 . tests/assert.sh
-# shellcheck source=packaging/repo.conf
+# shellcheck source=/dev/null
 . packaging/repo.conf
 
 debdir="${1:?deb dir required}"
@@ -15,7 +15,7 @@ if ! command -v dpkg-deb >/dev/null 2>&1; then
   exit 0
 fi
 
-deb="$(ls "$debdir"/${KEYRING_PKG}_*_all.deb 2>/dev/null | head -1 || true)"
+deb="$(find "$debdir" -name "${KEYRING_PKG}_*_all.deb" -print -quit 2>/dev/null || true)"
 if [ -z "$deb" ]; then printf 'FAIL no %s deb in %s\n' "$KEYRING_PKG" "$debdir"; exit 1; fi
 
 files="$(dpkg-deb -c "$deb")"

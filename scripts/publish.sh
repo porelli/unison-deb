@@ -6,7 +6,7 @@
 # history to inherit, so the branch is always exactly one commit and years of
 # published debs never accumulate in git.
 set -eu
-# shellcheck source=packaging/repo.conf
+# shellcheck source=/dev/null
 . "$(dirname "$0")/../packaging/repo.conf"
 
 repo="${1:?repo dir required}"
