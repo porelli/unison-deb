@@ -28,7 +28,7 @@ jobs:
           set -eux
           printf '=== Q2: apt-get test ===\n'
           apt-get update
-          apt-get install -y --no-install-recommends dpkg-dev git ca-certificates
+          apt-get install -y --no-install-recommends dpkg-dev git ca-certificates curl
 
       - name: Q3 - Does actions/checkout work in bare container?
         id: q3
