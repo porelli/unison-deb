@@ -31,4 +31,13 @@ assert_eq "$(sh scripts/deb-version.sh 2.54.0 trixie)"   "2.54.0-1+porelli1~deb1
 assert_eq "$(sh scripts/deb-version.sh 2.54.0 resolute)" "2.54.0-1+porelli1~ub2604" "deb-version.sh resolute"
 assert_fails sh scripts/deb-version.sh 2.54.0 bookworm
 
+# Verify that unknown suite produces stderr output (not just a silent failure)
+_stderr="$(sh scripts/deb-version.sh 2.54.0 bookworm 2>&1 >/dev/null || true)"
+if [ -n "$_stderr" ]; then
+  printf 'ok   deb-version.sh writes stderr on unknown suite\n'
+else
+  printf 'FAIL deb-version.sh should write stderr on unknown suite\n'
+  FAILED=1
+fi
+
 exit "$FAILED"

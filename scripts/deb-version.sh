@@ -12,4 +12,7 @@ if [ $# -ne 2 ]; then
 fi
 
 PKGREV="$(cat packaging/revision)"
-deb_version "$1" "$PKGREV" "$2"
+if ! deb_version "$1" "$PKGREV" "$2"; then
+  printf 'error: unknown suite: %s\n' "$2" >&2
+  exit 1
+fi
