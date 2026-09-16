@@ -319,6 +319,10 @@ jobs:
           set -eux
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates nodejs
+          # Jobs running in a container see a checkout owned by another uid, and
+          # git then refuses to operate on it ("dubious ownership"). checkout@v4
+          # handles its own calls; our later `git remote get-url` needs this.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - uses: actions/checkout@v4
 

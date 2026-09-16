@@ -1,0 +1,161 @@
+# Verify the repository is accessible and functional from the live Pages URL.
+# This exercises the real client path: TLS, caching, MIME handling — everything
+# the CI install-test bypasses by serving over localhost. Run manually after
+# publishing or on a schedule to catch Pages-specific regressions.
+name: verify-published
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly on Monday at 6:30 UTC, offset from the daily release check to
+    # avoid competing for runner slots.
+    - cron: '30 6 * * 1'
+
+jobs:
+  verify-trixie:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Install node for checkout
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends nodejs ca-certificates curl git
+
+      - uses: actions/checkout@v4
+
+      - name: Install from live URL
+        run: |
+          set -eux
+          . /etc/os-release
+          curl -fsSLO https://porelli.github.io/unison-deb/bootstrap/$VERSION_CODENAME/unison-deb-keyring.deb
+          dpkg -i unison-deb-keyring.deb
+          apt-get update
+          apt-get install -y unison unison-gtk
+
+      - name: Verify binaries
+        run: |
+          set -eux
+          test -x /usr/bin/unison-fsmonitor || { echo "FAIL no unison-fsmonitor" >&2; exit 1; }
+          /usr/bin/unison -version
+          /usr/bin/unison-fsmonitor -version
+          echo "ok   binaries present and report versions"
+
+      - name: Prove fsmonitor works with a live sync
+        run: |
+          set -eux
+          rm -rf /tmp/synca /tmp/syncb /tmp/unison-state
+          mkdir -p /tmp/synca /tmp/syncb /tmp/unison-state
+          export UNISON=/tmp/unison-state
+          echo original > /tmp/synca/first.txt
+
+          unison /tmp/synca /tmp/syncb -ui text -batch -auto -repeat watch \
+            > /tmp/unison-watch.log 2>&1 &
+          uni_pid=$!
+          trap "kill \$uni_pid 2>/dev/null || true" EXIT
+
+          # Wait for initial sync
+          i=0
+          while [ "$i" -lt 60 ]; do
+            [ -f /tmp/syncb/first.txt ] && break
+            i=$((i+1)); sleep 0.5
+          done
+          [ -f /tmp/syncb/first.txt ] || {
+            echo "FAIL initial sync never happened" >&2
+            cat /tmp/unison-watch.log >&2
+            exit 1
+          }
+          echo "ok   initial sync propagated"
+
+          # The real test: change made after unison started
+          echo added-later > /tmp/synca/second.txt
+          i=0
+          while [ "$i" -lt 60 ]; do
+            [ -f /tmp/syncb/second.txt ] && break
+            i=$((i+1)); sleep 0.5
+          done
+          [ -f /tmp/syncb/second.txt ] || {
+            echo "FAIL live change did not propagate -- fsmonitor not working" >&2
+            cat /tmp/unison-watch.log >&2
+            exit 1
+          }
+          body="$(cat /tmp/syncb/second.txt)"
+          [ "$body" = "added-later" ] || {
+            echo "FAIL propagated wrong content" >&2
+            exit 1
+          }
+          echo "ok   live change propagated -- fsmonitor works"
+
+  verify-resolute:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    steps:
+      - name: Install node for checkout
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends nodejs ca-certificates curl git
+
+      - uses: actions/checkout@v4
+
+      - name: Install from live URL
+        run: |
+          set -eux
+          . /etc/os-release
+          curl -fsSLO https://porelli.github.io/unison-deb/bootstrap/$VERSION_CODENAME/unison-deb-keyring.deb
+          dpkg -i unison-deb-keyring.deb
+          apt-get update
+          apt-get install -y unison unison-gtk
+
+      - name: Verify binaries
+        run: |
+          set -eux
+          test -x /usr/bin/unison-fsmonitor || { echo "FAIL no unison-fsmonitor" >&2; exit 1; }
+          /usr/bin/unison -version
+          /usr/bin/unison-fsmonitor -version
+          echo "ok   binaries present and report versions"
+
+      - name: Prove fsmonitor works with a live sync
+        run: |
+          set -eux
+          rm -rf /tmp/synca /tmp/syncb /tmp/unison-state
+          mkdir -p /tmp/synca /tmp/syncb /tmp/unison-state
+          export UNISON=/tmp/unison-state
+          echo original > /tmp/synca/first.txt
+
+          unison /tmp/synca /tmp/syncb -ui text -batch -auto -repeat watch \
+            > /tmp/unison-watch.log 2>&1 &
+          uni_pid=$!
+          trap "kill \$uni_pid 2>/dev/null || true" EXIT
+
+          # Wait for initial sync
+          i=0
+          while [ "$i" -lt 60 ]; do
+            [ -f /tmp/syncb/first.txt ] && break
+            i=$((i+1)); sleep 0.5
+          done
+          [ -f /tmp/syncb/first.txt ] || {
+            echo "FAIL initial sync never happened" >&2
+            cat /tmp/unison-watch.log >&2
+            exit 1
+          }
+          echo "ok   initial sync propagated"
+
+          # The real test: change made after unison started
+          echo added-later > /tmp/synca/second.txt
+          i=0
+          while [ "$i" -lt 60 ]; do
+            [ -f /tmp/syncb/second.txt ] && break
+            i=$((i+1)); sleep 0.5
+          done
+          [ -f /tmp/syncb/second.txt ] || {
+            echo "FAIL live change did not propagate -- fsmonitor not working" >&2
+            cat /tmp/unison-watch.log >&2
+            exit 1
+          }
+          body="$(cat /tmp/syncb/second.txt)"
+          [ "$body" = "added-later" ] || {
+            echo "FAIL propagated wrong content" >&2
+            exit 1
+          }
+          echo "ok   live change propagated -- fsmonitor works"
