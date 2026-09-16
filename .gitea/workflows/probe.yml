@@ -36,12 +36,13 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@v4
 
-      - name: Q3 fallback - git clone if checkout failed
+      - name: Q3 fallback - fetch test files if checkout failed
         if: always() && steps.q3.outcome == 'failure'
         run: |
-          printf '=== Q3 failed, using git clone fallback ===\n'
-          git clone https://gitea.porelli.eu/claude/unison-deb.git .
-          git log -1
+          printf '=== Q3 failed, fetching test files directly ===\n'
+          mkdir -p tests
+          curl -fsSL https://gitea.porelli.eu/claude/unison-deb/raw/branch/main/tests/test-dpkg-order.sh -o tests/test-dpkg-order.sh
+          curl -fsSL https://gitea.porelli.eu/claude/unison-deb/raw/branch/main/tests/assert.sh -o tests/assert.sh
 
       - name: Q4 - Version ordering against real dpkg
         if: always()
