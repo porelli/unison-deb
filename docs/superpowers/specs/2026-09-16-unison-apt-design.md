@@ -95,8 +95,8 @@ Three binary packages per suite.
 
 | Package | Arch | Contents |
 |---|---|---|
-| `unison` | amd64, arm64 | `/usr/bin/unison`, `/usr/bin/unison-fsmonitor`, `unison.1`, HTML + text manual, copyright, changelog |
-| `unison-gtk` | amd64, arm64 | `/usr/bin/unison-gui`, `/usr/bin/unison-gtk` symlink, `.desktop` entry, man page |
+| `unison` | amd64, arm64 | `/usr/bin/unison`, `/usr/bin/unison-fsmonitor`, `unison.1`, text manual, copyright, changelog |
+| `unison-gtk` | amd64, arm64 | `/usr/bin/unison-gui`, `/usr/bin/unison-gtk` symlink, upstream's `.desktop` entry and icons, `unison-gui.1` |
 | `unison-apt-keyring` | all | `/usr/share/keyrings/unison-apt.gpg`, `/etc/apt/sources.list.d/unison-apt.sources` |
 
 `unison` declares `Provides: unison-fsmonitor` so the capability is
@@ -105,8 +105,18 @@ which is what pins the GUI and CLI to one version.
 
 The GUI binary ships under upstream's name (`unison-gui`) with a symlink at
 Debian's (`unison-gtk`), so both upstream documentation and existing desktop
-launchers are correct. Neither distro ships a `.desktop` file; this repo adds
-one.
+launchers are correct.
+
+The desktop entry and icons are **upstream's own** — `data/unison-gui.desktop`
+and `icons/U.{16,24,32,48,256}x*.png` plus `icons/U.svg`, which upstream's
+`make install` places into `/usr/share/applications` and the hicolor icon theme.
+Neither distro ships them, so this is a real gain over the distro package, but
+it is upstream's work rather than ours and must not be reinvented.
+
+`unison-gtk`'s man page is a one-line `.so man1/unison.1` redirect installed as
+`unison-gui.1`, with a `unison-gtk.1` link. Upstream ships only one man page
+source and the GUI takes the same options, so duplicating its content would just
+create two things to keep in sync.
 
 ### Version scheme
 
@@ -177,18 +187,31 @@ Four jobs: `{trixie, resolute} × {amd64, arm64}`.
 - Build deps: `build-essential debhelper ocaml-nox ocaml-findlib
   liblablgtk3-ocaml-dev pkg-config`.
 - Source is upstream's tag tarball plus a vendored `debian/` directory in this
-  repo.
-- `man/unison.1` and the prebuilt HTML/text manual are extracted from upstream's
-  *binary* release tarball for the same tag and placed into the tree before the
-  build. Upstream generates those with LaTeX, HEVEA, and Lynx in a separate CI
-  job; lifting them ships real documentation without adding a doc toolchain to
-  all four builds. Nothing is downloaded from inside `debian/rules` — the
-  fetch is a workflow step, so the source tree handed to `dpkg-buildpackage` is
-  already complete.
+  repo. **Nothing is fetched from the network during the package build** — the
+  tarball download is a workflow step, and `debian/rules` touches only the tree
+  it is given.
 - `dpkg-buildpackage -b -uc -us`. Upstream's `all:` target is
   `tui guimaybe macuimaybe fsmonitor`, and lablgtk3 presence is detected
   automatically, so both the GUI and fsmonitor are built without extra flags.
   `src/strings.ml` is checked into upstream's tree, so `make` needs no LaTeX.
+- Documentation is generated from the tree, not lifted from upstream's binary
+  release:
+  - `man/unison.1` is produced by `make -C src manpagefile`, which expands
+    `man/unison.1.in` using the freshly built binary's `-prefsman short|full`
+    output. No LaTeX, HEVEA, or Lynx.
+    **Trap:** the top-level `manpage` target — and `src/Makefile.OCaml`'s
+    `manpage:` — are deliberately *empty* no-ops, as is `docs:`. `make` and
+    `make manpage` therefore produce no man page at all, silently. Only
+    `manpagefile` builds it.
+  - The text manual is generated with `./src/unison -doc all`, which upstream
+    documents as containing "exactly the same information as the printed and HTML
+    manuals, modulo formatting" (the manual is embedded in the binary via
+    `src/strings.ml`). The HTML and PDF manuals are not shipped; they are the
+    only artifacts that would require the LaTeX toolchain.
+- Installation stages through upstream's own `make install`, which honours
+  `DESTDIR`, `PREFIX`, `BINDIR`, `MANDIR`, `INSTALL_PROGRAM`, and `INSTALL_DATA`.
+  `debian/rules` stages into `debian/tmp` and lets per-package `.install` files
+  split the result, rather than reimplementing the install logic.
 
 ### Build gates
 
@@ -196,18 +219,20 @@ Every build job must pass all of these, or it fails:
 
 - `make test` (upstream's own unit tests).
 - `unison` and `unison-fsmonitor` each execute and report a version.
-- `unison-gui` resolves all its shared libraries (`ldd -r`, no missing symbols),
-  and answers `-version` under `xvfb-run`.
+- `unison-gui` resolves all its shared libraries (`ldd -r`, no missing symbols)
+  and answers `-version`.
+- `man/unison.1` exists and is non-empty — because `make` produces it silently
+  never, and a missing man page is otherwise invisible until a user runs `man`.
 
 `unison-fsmonitor` existing is the entire reason this project exists, so it is
 asserted rather than assumed.
 
-The GUI is checked differently because it is a GTK program in a headless
-container, and whether upstream's `unison-gui` answers `-version` before
-initialising GTK is unverified. `ldd -r` is the assertion that always holds;
-`xvfb-run -version` is attempted on top of it. If the GUI turns out to require a
-display even for `-version`, drop that half and keep `ldd -r` — decided against
-real output during implementation, not guessed at now.
+`unison-gui -version` is expected to work headlessly: `src/main.ml` handles
+`-version` and exits before any GTK initialisation, and prints via
+`gui_safe_printf`, which exists precisely so GUI builds can answer on stdout.
+`ldd -r` is kept alongside it as the assertion that holds regardless. If
+`-version` turns out to need a display, wrap it in `xvfb-run` rather than
+dropping the check.
 
 `lintian` runs advisory at first; promoting it to blocking is a later decision
 made against real output.
