@@ -1,0 +1,4 @@
+# SDD scratch: ledger, briefs, review packages. Regenerable; not part of the repo.
+.superpowers/
+# Never commit private key material.
+*-secret.asc
