@@ -7,9 +7,11 @@ name: verify-published
 on:
   workflow_dispatch:
   schedule:
-    # Weekly on Monday at 6:30 UTC, offset from the daily release check to
-    # avoid competing for runner slots.
-    - cron: '30 6 * * 1'
+    # Monthly on the 1st at 6:30 UTC. Upstream releases roughly every six months,
+    # the repository is static between releases, and the signing key has no expiry.
+    # This watches for external drift (Pages behavior, TLS, apt-side changes), not
+    # our own changes. Monthly gives twelve checks per year against ~two content changes.
+    - cron: '30 6 1 * *'
 
 jobs:
   verify-trixie:

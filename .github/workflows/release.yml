@@ -41,27 +41,11 @@ jobs:
 
   detect:
     runs-on: ubuntu-latest
-    container: debian:trixie
     outputs:
       changed:  ${{ steps.d.outputs.changed }}
       upstream: ${{ steps.d.outputs.upstream }}
       target:   ${{ steps.d.outputs.target }}
     steps:
-      - name: Tools
-        run: |
-          set -eux
-          apt-get update
-          apt-get install -y --no-install-recommends git ca-certificates curl nodejs
-          # nodejs is installed *before* checkout because actions/checkout is a
-          # JavaScript action; a bare distro container has no node, so checkout fails
-          # with "exec: node: executable file not found in $PATH". This is a no-op on
-          # GitHub (which mounts node into containers), but essential here for both
-          # platforms to share one workflow. Without it, Gitea's containerized runs fail.
-          # Separate issue: git in containers refuses to operate on checkouts owned by
-          # other uids ("dubious ownership"). checkout@v4 handles its own calls; our
-          # later `git fetch`/`git show` need this config.
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
       - uses: actions/checkout@v4
 
       - name: Fetch the published state, if any
@@ -106,6 +90,11 @@ jobs:
           set -eux
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates nodejs
+          # nodejs is installed *before* checkout because actions/checkout is a
+          # JavaScript action; a bare distro container has no node, so checkout fails
+          # with "exec: node: executable file not found in $PATH". This is a no-op on
+          # GitHub (which mounts node into containers), but essential here for both
+          # platforms to share one workflow. Without it, Gitea's containerized runs fail.
 
       - uses: actions/checkout@v4
 
