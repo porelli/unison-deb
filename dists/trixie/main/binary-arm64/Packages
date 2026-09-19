@@ -1,0 +1,72 @@
+Package: unison
+Version: 2.54.0-1+porelli3~deb13
+Architecture: arm64
+Maintainer: Michele Porelli <Linux571@gmail.com>
+Installed-Size: 7852
+Depends: libc6 (>= 2.38)
+Provides: unison-fsmonitor
+Filename: pool/trixie/main/u/unison/unison_2.54.0-1+porelli3~deb13_arm64.deb
+Size: 1753992
+MD5sum: 6ab6e607eeb7a78e63f4e643d40596b7
+SHA1: 38b82e11114c55b548b63927b00d701c0a8a4059
+SHA256: 9160a7ebff08921bb346d000fc3f479206766b0e0e523441a7bcc7c5b380f44b
+Section: net
+Priority: optional
+Homepage: https://github.com/bcpierce00/unison
+Description: file synchronization tool, with fsmonitor
+ Unison is a file synchronization tool for POSIX systems and Windows. Two
+ replicas of a collection of files and directories can be stored on different
+ hosts, modified separately, and then brought up to date by propagating the
+ changes in each replica to the other.
+ .
+ This package is built from the current upstream release and, unlike the
+ distribution's own unison package, includes unison-fsmonitor. Without that
+ binary "unison -repeat watch" cannot work and continuous synchronization
+ degrades to polling.
+ .
+ Note that Unison requires the same version at both ends of a synchronization.
+
+Package: unison-deb-keyring
+Version: 1~deb13
+Architecture: all
+Maintainer: Michele Porelli <Linux571@gmail.com>
+Filename: pool/trixie/main/u/unison/unison-deb-keyring_1~deb13_all.deb
+Size: 1500
+MD5sum: d99a945bcc093daa0067715fed026576
+SHA1: 5fa5f0e3a15119ad26e7220ae73ddf9ab2d0519b
+SHA256: 2a36d7d42ea55be6b396298148c9e2af8982de687531504399172e77d0d7e892
+Section: misc
+Priority: optional
+Description: apt configuration for the unison-deb repository
+ Installs the signing key and apt source entry for https://porelli.github.io/unison-deb , which
+ carries the current upstream release of Unison including unison-fsmonitor
+ for trixie.
+ .
+ Fetch this package directly and install it with dpkg; it is what configures
+ the repository that apt would otherwise need in order to find it.
+
+Package: unison-gtk
+Source: unison
+Version: 2.54.0-1+porelli3~deb13
+Architecture: arm64
+Maintainer: Michele Porelli <Linux571@gmail.com>
+Installed-Size: 11176
+Depends: unison (= 2.54.0-1+porelli3~deb13), libc6 (>= 2.38), libcairo2 (>= 1.12.0), libfontconfig1 (>= 2.12.6), libfreetype6 (>= 2.2.1), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.36.0), libgtk-3-0t64 (>= 3.11.5), libpango-1.0-0 (>= 1.14.0)
+Filename: pool/trixie/main/u/unison/unison-gtk_2.54.0-1+porelli3~deb13_arm64.deb
+Size: 2450984
+MD5sum: bf4678a6cde39e6e58bfc62597ded7fd
+SHA1: 9f58945afb8e47275020842986bff254a8f713a0
+SHA256: 01dcece121e6f90abdda1e10e7d03d33316b755fe3e63a0df87a1e0dfb09348e
+Section: net
+Priority: optional
+Homepage: https://github.com/bcpierce00/unison
+Description: file synchronization tool, with fsmonitor (GTK interface)
+ Unison is a file synchronization tool for POSIX systems and Windows. Two
+ replicas of a collection of files and directories can be stored on different
+ hosts, modified separately, and then brought up to date by propagating the
+ changes in each replica to the other.
+ .
+ This package provides the GTK graphical interface, installed as unison-gui
+ with a unison-gtk compatibility symlink, along with the desktop entry and
+ icons that upstream ships and the distribution's packages omit.
+

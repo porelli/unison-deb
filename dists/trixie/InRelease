@@ -1,0 +1,38 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Architectures: amd64 arm64
+Codename: trixie
+Components: main
+Date: Sat, 19 Sep 2026 15:57:32 +0000
+Description: Current upstream Unison, including unison-fsmonitor (trixie)
+Label: unison-deb
+Origin: unison-deb
+Suite: trixie
+MD5Sum:
+ 70ffc5cb4e9b8d64bb647e4c9a3a50c0             3261 main/binary-amd64/Packages
+ 0d7e5fcce666aaca49a06df43f6ea379             1394 main/binary-amd64/Packages.gz
+ 38ea343a18bef7b7b034639ed01cb7d8             3262 main/binary-arm64/Packages
+ 75a86265a29dfc71e649c7a7d11e4877             1394 main/binary-arm64/Packages.gz
+SHA1:
+ 246151beffb1dc495446e174359832c5822c916d             3261 main/binary-amd64/Packages
+ 19f9193132d37a58bb8641713611cdbff3747103             1394 main/binary-amd64/Packages.gz
+ 4be96f8819e24761e58b1b2011eef3a5075cfb89             3262 main/binary-arm64/Packages
+ fb71d2c2c11f4934e1d061638c2a447b66895dc5             1394 main/binary-arm64/Packages.gz
+SHA256:
+ 001059899416d187759d8b13bc3644dc7e23d1d13bd335379077352640e0bd67             3261 main/binary-amd64/Packages
+ c580501347181f86c3565975bad0e04efff4f3ad9f932a8c5c9988bd8ca4e900             1394 main/binary-amd64/Packages.gz
+ a97063f8c6af9f58d452c5ad5d455c9bb7c28618bc224d84412187f07826698f             3262 main/binary-arm64/Packages
+ 8f578de782c1a0a2dd36b3717c208d9e4c0928816156041d2bd7a174d231116e             1394 main/binary-arm64/Packages.gz
+SHA512:
+ f39f4563a78a79f1d72916be3339279ae2e16e98452a4329cc13b244d7f642295506ba700ac4fc611f10b874d26054d61d0a266bf20e1fbe3f01a116292ef7d4             3261 main/binary-amd64/Packages
+ 4dbd490676ab1c2c17c9dbdc00f4db3b94ba5f49b5269ff031dd8c210be1899211ce020d4a9f32fe14baac9e09e7b709c43775724989732883b8e59966d3c3a5             1394 main/binary-amd64/Packages.gz
+ a9c547611d65db41be96ab604c55e3acde1b398c403aeac6eb644d33e03dd2e80954c7c900ef7ca5e5eeabbd89499c5f3b800e2b18da71fcec9f189006a87269             3262 main/binary-arm64/Packages
+ a7f29eea9ba5aca7cceef7165e7617fa4769eb370bdcb67cf1ee2a1799c27134b2f053aa5b6f99abaeb8142ab8081d8632d93f70aa499244074d13594a2799e0             1394 main/binary-arm64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iHUEARYKAB0WIQQrhSEuZo3ZaT/l3PTq9gwoFsCG9QUCaq6w7AAKCRDq9gwoFsCG
+9VhMAQDfXNKfGC+GCV9uzbqSRH/qcYWg/SDaHdkeXWKp7SUsbAEA+f+dxB0EG2Ft
+OrIL+F2OVWEA5A+HJ4mHGbaRg9ArFQI=
+=4e8F
+-----END PGP SIGNATURE-----

@@ -1,0 +1,28 @@
+Architectures: amd64 arm64
+Codename: resolute
+Components: main
+Date: Sat, 19 Sep 2026 15:57:32 +0000
+Description: Current upstream Unison, including unison-fsmonitor (resolute)
+Label: unison-deb
+Origin: unison-deb
+Suite: resolute
+MD5Sum:
+ d9835bf1021c251da4f4339e81b2db44             3276 main/binary-amd64/Packages
+ 9c8b2cdbf122984b304f656b455975e6             1390 main/binary-amd64/Packages.gz
+ 46dc384870205c2e82a0996431bf6814             3277 main/binary-arm64/Packages
+ 3b32d7e0f6ee0c5f44455277196bc834             1394 main/binary-arm64/Packages.gz
+SHA1:
+ e9f9f0225c535b086d5ddd888e20a7365a56d04b             3276 main/binary-amd64/Packages
+ bef1b6b6c6401bb71be1cf15525e26ac216e5ba2             1390 main/binary-amd64/Packages.gz
+ f913172101e8d2b278f3ff12ccb5a7a949d00e29             3277 main/binary-arm64/Packages
+ d93bb4bd703ea6848594884bd4bba35977323b30             1394 main/binary-arm64/Packages.gz
+SHA256:
+ cd15232f668ba30a701402dde6ab1feaa11738e50843962a0dafb326d67b0be4             3276 main/binary-amd64/Packages
+ c34b096be61a0fb67eb35674a1acef20cbdaacaf0c9ddb57263202f8159fcd60             1390 main/binary-amd64/Packages.gz
+ 249bd616abb0b374c8e45ef5189023d09e9d262a466a4049241f869a7126b54e             3277 main/binary-arm64/Packages
+ 49c731117721c1198a451f469a787606888d24b40618f12f2ac002d1a71c9cff             1394 main/binary-arm64/Packages.gz
+SHA512:
+ 360fc99e559cf7ba1449384dd71e6c56e66cbfa4b219b2bbe115310c826446a571d2056b476b8992ab5e0758704582e8105987a0662d49880a613d82bcbcd021             3276 main/binary-amd64/Packages
+ a4abc889eb1ec19ae99d11972bd427297a0396b32dda613e13a5b76e14ba2cf971491e34b2ae5051f93257d5dd9dc6f171953b1db0d88dc5cd47a7705e584ad1             1390 main/binary-amd64/Packages.gz
+ 1b76e422bd4d2b36a979832fb06e1af3b15cbc6ef9dfea5ac17fb6c33ff258e8ffe53d30c17c09bb394a4b849fea34ca1f4cde595c6a27b99ce8b28b97851a20             3277 main/binary-arm64/Packages
+ 7f862e5af30a1b4dcb8abd13ff9f32d49d723d190f8d0bfbf28545176d2ec038337f99cd9d0d82d350575ccdda38bbcf1766e04a1a3673e436c4d1ac36946ba4             1394 main/binary-arm64/Packages.gz
