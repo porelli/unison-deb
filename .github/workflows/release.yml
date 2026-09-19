@@ -349,7 +349,15 @@ jobs:
         run: |
           set -eux
           apt-get update
-          apt-get install -y --no-install-recommends git ca-certificates nodejs
+          apt-get install -y --no-install-recommends git ca-certificates nodejs curl
+          # GitHub CLI for release creation (GitHub only; Gitea step is guarded)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+            | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+            | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          apt-get update
+          apt-get install -y gh
           # Jobs running in a container see a checkout owned by another uid, and
           # git then refuses to operate on it ("dubious ownership"). checkout@v4
           # handles its own calls; our later `git remote get-url` needs this.
@@ -372,3 +380,92 @@ jobs:
           sh scripts/publish.sh "$PWD/repo" "$remote" \
             "${{ vars.PUBLISH_BRANCH || 'apt-repo' }}" \
             "unison ${{ needs.detect.outputs.target }}"
+
+      - name: Publish keyring packages as release assets (GitHub only)
+        if: ${{ github.server_url == 'https://github.com' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Publish the keyring packages as GitHub release assets. Using a per-Unison-version
+          # release gives a stable, versioned, CDN-backed bootstrap URL
+          # (/releases/latest/download/<stable-name>) that does not depend on GitHub Pages
+          # being up and can be referenced from documentation without embedding a version number.
+
+          upstream_version="${{ needs.detect.outputs.upstream }}"
+          tag="v$upstream_version"
+
+          # Prepare per-suite assets with stable names
+          # GitHub download URLs use the actual filename (not the label), so we copy
+          # the versioned debs to stable names before uploading.
+          mkdir -p /tmp/keyring-assets
+          # shellcheck source=scripts/lib.sh
+          for suite in $(sh -c '. scripts/lib.sh; suite_list'); do
+            versioned="$(ls repo/bootstrap/$suite/unison-deb-keyring_*_all.deb)"
+            stable_name="unison-deb-keyring-$suite.deb"
+            cp "$versioned" "/tmp/keyring-assets/$stable_name"
+          done
+
+          # Create release if it doesn't exist
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Unison $upstream_version with fsmonitor" \
+              --notes "Unison $upstream_version built with \`unison-fsmonitor\` for \`-repeat watch\` support.
+
+          Keyring packages:
+          - \`unison-deb-keyring-trixie.deb\` — Debian trixie
+          - \`unison-deb-keyring-resolute.deb\` — Ubuntu 26.04 (resolute)
+
+          Install via: https://github.com/$GITHUB_REPOSITORY#install"
+
+            for suite in $(sh -c '. scripts/lib.sh; suite_list'); do
+              stable_name="unison-deb-keyring-$suite.deb"
+              gh release upload "$tag" "/tmp/keyring-assets/$stable_name" --repo "$GITHUB_REPOSITORY" --clobber
+            done
+            echo "Created release $tag with keyring assets"
+          else
+            echo "Release $tag already exists"
+
+            # STALE KEYRING HAZARD: Because the tag follows the Unison version rather than
+            # the keyring revision, a keyring rotation without a new Unison version would
+            # leave the newest release holding a stale keyring. This would break bootstrapping
+            # for new machines (they'd install the old key, then apt update would fail).
+            # To prevent this, we refresh/replace the keyring assets on the latest release
+            # whenever they differ from what is attached, comparing by the Version field in
+            # the deb control data.
+
+            needs_refresh=false
+            for suite in $(sh -c '. scripts/lib.sh; suite_list'); do
+              stable_name="unison-deb-keyring-$suite.deb"
+
+              # Get the version string from the local deb
+              local_deb="/tmp/keyring-assets/$stable_name"
+              local_version="$(dpkg-deb --field "$local_deb" Version)"
+
+              # Get the version from the attached asset (download it)
+              mkdir -p /tmp/existing-assets
+              if gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern "$stable_name" --dir /tmp/existing-assets 2>/dev/null; then
+                existing_version="$(dpkg-deb --field "/tmp/existing-assets/$stable_name" Version)"
+                if [ "$local_version" != "$existing_version" ]; then
+                  echo "Keyring asset $stable_name has changed (local: $local_version, release: $existing_version)"
+                  needs_refresh=true
+                fi
+              else
+                echo "Keyring asset $stable_name is missing from release"
+                needs_refresh=true
+              fi
+            done
+
+            if [ "$needs_refresh" = true ]; then
+              echo "Refreshing keyring assets on release $tag"
+              for suite in $(sh -c '. scripts/lib.sh; suite_list'); do
+                stable_name="unison-deb-keyring-$suite.deb"
+                gh release upload "$tag" "/tmp/keyring-assets/$stable_name" --repo "$GITHUB_REPOSITORY" --clobber
+              done
+              echo "Keyring assets refreshed"
+            else
+              echo "Keyring assets are up to date"
+            fi
+          fi

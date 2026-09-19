@@ -28,8 +28,8 @@ cat <<EOF
 <p>Suites: $(suite_list | tr '\n' ' '). Architectures: amd64, arm64.</p>
 <h2>Install</h2>
 <pre><code>. /etc/os-release
-curl -fsSLO $REPO_URL/bootstrap/\$VERSION_CODENAME/unison-deb-keyring.deb
-sudo dpkg -i unison-deb-keyring.deb
+curl -fsSLO https://github.com/porelli/unison-deb/releases/latest/download/unison-deb-keyring-\$VERSION_CODENAME.deb
+sudo dpkg -i unison-deb-keyring-\$VERSION_CODENAME.deb
 sudo apt update && sudo apt install unison unison-gtk</code></pre>
 <p>Unison requires the <em>same version at both ends</em> of a synchronization,
 so add this repository on every host you sync between.</p>

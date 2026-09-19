@@ -12,8 +12,8 @@ Suites: Debian trixie, Ubuntu 26.04 (resolute). Architectures: amd64, arm64.
 
 ```sh
 . /etc/os-release
-curl -fsSLO https://porelli.github.io/unison-deb/bootstrap/$VERSION_CODENAME/unison-deb-keyring.deb
-sudo dpkg -i unison-deb-keyring.deb
+curl -fsSLO https://github.com/porelli/unison-deb/releases/latest/download/unison-deb-keyring-$VERSION_CODENAME.deb
+sudo dpkg -i unison-deb-keyring-$VERSION_CODENAME.deb
 sudo apt update && sudo apt install unison unison-gtk
 ```
 

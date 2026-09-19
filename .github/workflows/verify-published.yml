@@ -30,8 +30,8 @@ jobs:
         run: |
           set -eux
           . /etc/os-release
-          curl -fsSLO https://porelli.github.io/unison-deb/bootstrap/$VERSION_CODENAME/unison-deb-keyring.deb
-          dpkg -i unison-deb-keyring.deb
+          curl -fsSLO https://github.com/porelli/unison-deb/releases/latest/download/unison-deb-keyring-$VERSION_CODENAME.deb
+          dpkg -i unison-deb-keyring-$VERSION_CODENAME.deb
           apt-get update
           apt-get install -y unison unison-gtk
 
@@ -104,8 +104,8 @@ jobs:
         run: |
           set -eux
           . /etc/os-release
-          curl -fsSLO https://porelli.github.io/unison-deb/bootstrap/$VERSION_CODENAME/unison-deb-keyring.deb
-          dpkg -i unison-deb-keyring.deb
+          curl -fsSLO https://github.com/porelli/unison-deb/releases/latest/download/unison-deb-keyring-$VERSION_CODENAME.deb
+          dpkg -i unison-deb-keyring-$VERSION_CODENAME.deb
           apt-get update
           apt-get install -y unison unison-gtk
 
