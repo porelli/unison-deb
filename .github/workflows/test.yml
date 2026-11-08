@@ -38,26 +38,44 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends ca-certificates nodejs
 
-      - name: Make a payload
+      - name: Make payloads
         run: |
           set -eu
-          mkdir -p out
-          head -c 65536 /dev/urandom > out/payload.bin
-          sha256sum out/payload.bin > payload.sha256
+          for n in a b; do
+            mkdir -p "out/$n"
+            head -c 65536 /dev/urandom > "out/$n/payload.bin"
+          done
+
+      # Two artifacts, then the two download shapes release.yml relies on: a
+      # pattern matching several artifacts (one subdirectory each) and a single
+      # artifact by name (extracted straight into path).
+      - uses: actions/upload-artifact@v7
+        with:
+          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-a
+          path: out/a/*.bin
+          retention-days: 1
 
       - uses: actions/upload-artifact@v7
         with:
-          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}
-          path: out/*.bin
+          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-b
+          path: out/b/*.bin
           retention-days: 1
 
       - uses: actions/download-artifact@v8
         with:
-          pattern: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}
+          pattern: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-*
           path: incoming
 
-      - name: Verify the payload survived
+      - uses: actions/download-artifact@v8
+        with:
+          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-a
+          path: single
+
+      - name: Verify the payloads survived
         run: |
           set -eu
-          cp incoming/roundtrip-*/payload.bin out/payload.bin.dl
-          sed 's#out/payload.bin#out/payload.bin.dl#' payload.sha256 | sha256sum -c -
+          prefix="roundtrip-${{ github.run_id }}-${{ github.run_attempt }}"
+          cmp out/a/payload.bin "incoming/$prefix-a/payload.bin"
+          cmp out/b/payload.bin "incoming/$prefix-b/payload.bin"
+          cmp out/a/payload.bin single/payload.bin
+          echo "artifact round-trip ok"
