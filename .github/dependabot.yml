@@ -1,0 +1,15 @@
+# GitHub-only: Gitea ignores this file. Every PR it opens is auto-merged by
+# dependabot-auto-merge.yml once the required checks on main pass.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: deps
+    groups:
+      # Minor/patch bumps land together; each major bump gets its own PR so a
+      # breaking release cannot hold the rest hostage.
+      actions-minor-patch:
+        update-types: [minor, patch]

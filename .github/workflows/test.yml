@@ -19,7 +19,45 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates nodejs dpkg-dev
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run all unit tests
         run: sh tests/run-tests.sh
+
+  # release.yml only runs on schedule/dispatch, so without this job a bump of the
+  # artifact actions (e.g. from Dependabot) would pass PR CI without ever being
+  # executed. Round-trip a file through upload/download, using the same container
+  # setup as release.yml, so a broken bump fails here first.
+  artifact-roundtrip:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Tools
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates nodejs
+
+      - name: Make a payload
+        run: |
+          set -eu
+          mkdir -p out
+          head -c 65536 /dev/urandom > out/payload.bin
+          sha256sum out/payload.bin > payload.sha256
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/*.bin
+          retention-days: 1
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}
+          path: incoming
+
+      - name: Verify the payload survived
+        run: |
+          set -eu
+          cp incoming/roundtrip-*/payload.bin out/payload.bin.dl
+          sed 's#out/payload.bin#out/payload.bin.dl#' payload.sha256 | sha256sum -c -
