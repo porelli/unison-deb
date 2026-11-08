@@ -12,7 +12,9 @@ permissions:
 
 jobs:
   auto-merge:
-    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
+    # Check both the PR author and whoever triggered this run, so a human
+    # pushing to a Dependabot branch cannot ride the auto-merge.
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - name: Enable auto-merge
