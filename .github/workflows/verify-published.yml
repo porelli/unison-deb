@@ -24,7 +24,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends nodejs ca-certificates curl git
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install from live URL
         run: |
@@ -98,7 +98,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends nodejs ca-certificates curl git
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install from live URL
         run: |

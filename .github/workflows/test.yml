@@ -19,7 +19,63 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates nodejs dpkg-dev
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run all unit tests
         run: sh tests/run-tests.sh
+
+  # release.yml only runs on schedule/dispatch, so without this job a bump of the
+  # artifact actions (e.g. from Dependabot) would pass PR CI without ever being
+  # executed. Round-trip a file through upload/download, using the same container
+  # setup as release.yml, so a broken bump fails here first.
+  artifact-roundtrip:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Tools
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates nodejs
+
+      - name: Make payloads
+        run: |
+          set -eu
+          for n in a b; do
+            mkdir -p "out/$n"
+            head -c 65536 /dev/urandom > "out/$n/payload.bin"
+          done
+
+      # Two artifacts, then the two download shapes release.yml relies on: a
+      # pattern matching several artifacts (one subdirectory each) and a single
+      # artifact by name (extracted straight into path).
+      - uses: actions/upload-artifact@v7
+        with:
+          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-a
+          path: out/a/*.bin
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-b
+          path: out/b/*.bin
+          retention-days: 1
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: incoming
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}-a
+          path: single
+
+      - name: Verify the payloads survived
+        run: |
+          set -eu
+          prefix="roundtrip-${{ github.run_id }}-${{ github.run_attempt }}"
+          cmp out/a/payload.bin "incoming/$prefix-a/payload.bin"
+          cmp out/b/payload.bin "incoming/$prefix-b/payload.bin"
+          cmp out/a/payload.bin single/payload.bin
+          echo "artifact round-trip ok"

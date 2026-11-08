@@ -1,0 +1,24 @@
+# Queue every Dependabot PR (patch, minor and major) for auto-merge. GitHub only
+# merges once the checks required by main's branch protection pass, so a bump
+# that breaks CI stays open. On Gitea there is no Dependabot, so the job's actor
+# check never matches and it is skipped.
+name: dependabot-auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    # Check both the PR author and whoever triggered this run, so a human
+    # pushing to a Dependabot branch cannot ride the auto-merge.
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"

@@ -46,7 +46,7 @@ jobs:
       upstream: ${{ steps.d.outputs.upstream }}
       target:   ${{ steps.d.outputs.target }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Fetch the published state, if any
         run: |
@@ -96,12 +96,12 @@ jobs:
           # GitHub (which mounts node into containers), but essential here for both
           # platforms to share one workflow. Without it, Gitea's containerized runs fail.
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build
         run: sh scripts/build-debs.sh "${{ needs.detect.outputs.upstream }}" "${{ matrix.suite }}" "$PWD/out"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: debs-${{ matrix.suite }}-amd64
           path: out/*.deb
@@ -126,12 +126,12 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates nodejs
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build
         run: sh scripts/build-debs.sh "${{ needs.detect.outputs.upstream }}" "${{ matrix.suite }}" "$PWD/out"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: debs-${{ matrix.suite }}-arm64
           path: out/*.deb
@@ -154,9 +154,9 @@ jobs:
             git ca-certificates dpkg-dev apt-utils gnupg curl nodejs
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: debs-*
           path: incoming
@@ -258,7 +258,7 @@ jobs:
           EOF
           sh scripts/make-index.sh repo > repo/index.html
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: repo
           path: repo
@@ -283,9 +283,9 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates nodejs
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: repo
           path: repo
@@ -317,9 +317,9 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates nodejs
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: repo
           path: repo
@@ -359,13 +359,13 @@ jobs:
           apt-get update
           apt-get install -y gh
           # Jobs running in a container see a checkout owned by another uid, and
-          # git then refuses to operate on it ("dubious ownership"). checkout@v4
+          # git then refuses to operate on it ("dubious ownership"). actions/checkout
           # handles its own calls; our later `git remote get-url` needs this.
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: repo
           path: repo
